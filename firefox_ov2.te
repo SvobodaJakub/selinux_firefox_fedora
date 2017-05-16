@@ -1,0 +1,137 @@
+policy_module(firefox_ov2, 1.1.4)
+# for some reason, unknown to me at the moment, "policy_module(firefox_ov2, 1.1.4)" works but "module firefox_ov2 1.1.4;" does not
+
+
+# parts taken from http://serverfault.com/questions/628344/selinux-cannot-confine-firefox-process-to-mozilla-t-domain
+
+require {
+	role unconfined_r;
+	type unconfined_t;
+	type mozilla_t;
+	type mozilla_home_t;
+	type mozilla_exec_t;
+    type mozilla_plugin_t;
+	type mozilla_plugin_exec_t;
+
+	type udev_var_run_t;
+	type unconfined_t;
+	type avahi_t;
+	type cupsd_var_run_t;
+	type v4l_device_t;
+	type colord_t;
+	type alsa_etc_rw_t;
+	type tmp_t;
+	type user_tmp_t;
+	type fs_t;
+	type sysfs_t;
+	type user_tty_device_t;
+	type user_home_dir_t;
+	type systemd_hostnamed_t;
+	type udev_var_run_t;
+    type commplex_main_port_t;
+    type tor_port_t;
+
+	class process { transition execmem };
+	class process { ptrace execmem setcap };
+
+	class rawip_socket create;
+	class file all_file_perms;
+	class lnk_file { read open getattr create };
+	class sock_file all_sock_file_perms;
+	class dir all_dir_perms;
+	class filesystem getattr;
+	class unix_stream_socket connectto;
+    class chr_file all_chr_file_perms;
+	class dbus send_msg;
+    class tcp_socket all_tcp_socket_perms;
+    class udp_socket all_udp_socket_perms;
+    class unix_dgram_socket sendto;
+
+}
+
+# semanage fcontext --add -s unconfined_u -t firefox_ov_downloads_t "/home/[^/]*/Downloads-sandbox.*)?"
+type firefox_ov_downloads_t;
+
+files_type(firefox_ov_downloads_t)
+
+role unconfined_r types mozilla_t;
+
+# because of seccomp - (probably NO_NEW_PRIVS / NOSUID) (op=security_bounded_transition seresult=denied)
+typebounds unconfined_t mozilla_t;
+
+type_transition unconfined_t mozilla_exec_t : process mozilla_t;
+
+
+
+## Questionable permissions:
+manage_files_pattern(mozilla_t, user_home_dir_t, user_home_dir_t)
+# allow mozilla_t systemd_hostnamed_t:dbus send_msg;
+# allow systemd_hostnamed_t mozilla_t:dbus send_msg;
+# allow mozilla_t self:process execmem;
+avahi_dbus_chat(mozilla_t)
+netutils_exec_traceroute(mozilla_t)
+auth_login_entry_type(mozilla_t)
+corenet_tcp_connect_intermapper_port(mozilla_t)
+virt_list_sandbox_dirs(mozilla_t)
+
+
+
+allow mozilla_t mozilla_plugin_exec_t:file { read ioctl getattr create unlink open execute };
+allow mozilla_t mozilla_plugin_exec_t:file execute_no_trans;
+
+allow mozilla_t self:process { ptrace setcap };
+allow mozilla_t self:rawip_socket create;
+
+allow mozilla_t tmp_t:file { execute create };
+allow mozilla_t tmp_t:lnk_file create;
+allow mozilla_t v4l_device_t:chr_file { read write open getattr };
+allow mozilla_t colord_t:dbus send_msg;
+dev_read_video_dev(mozilla_t)
+
+alsa_read_rw_config(mozilla_t)
+cups_stream_connect(mozilla_t)
+dev_list_sysfs(mozilla_t)
+dev_read_sysfs(mozilla_t)
+mozilla_dbus_chat(mozilla_t)
+udev_read_db(mozilla_t)
+unconfined_stream_connect(mozilla_t)
+
+userdom_execute_user_tmp_files(mozilla_t)
+userdom_manage_user_tmp_chr_files(mozilla_t)
+userdom_manage_user_tmp_symlinks(mozilla_t)
+
+# can be probably deleted in fc25
+# userdom_execute_user_tmpfs_files(mozilla_t)
+
+userdom_manage_tmp_dirs(mozilla_t)
+userdom_manage_tmp_files(mozilla_t)
+
+files_manage_generic_tmp_files(mozilla_t)
+udev_read_pid_files(mozilla_t)
+
+manage_files_pattern(mozilla_t, firefox_ov_downloads_t, firefox_ov_downloads_t)
+manage_dirs_pattern(mozilla_t, firefox_ov_downloads_t, firefox_ov_downloads_t)
+
+manage_files_pattern(mozilla_t, tmp_t, tmp_t)
+manage_dirs_pattern(mozilla_t, tmp_t, tmp_t)
+
+manage_sock_files_pattern(mozilla_t, tmp_t, tmp_t)
+manage_sock_files_pattern(mozilla_t, user_tmp_t, user_tmp_t)
+
+read_files_pattern(mozilla_t, user_home_dir_t, user_home_dir_t)
+read_files_pattern(mozilla_t, udev_var_run_t, udev_var_run_t)
+
+manage_files_pattern(mozilla_t, user_tmp_t, user_tmp_t)
+manage_dirs_pattern(mozilla_t, user_tmp_t, user_tmp_t)
+
+allow mozilla_t self:unix_dgram_socket sendto;
+allow mozilla_t self:tcp_socket { listen accept };
+
+corenet_tcp_connect_commplex_main_port(mozilla_t)
+corenet_tcp_connect_sip_port(mozilla_t)
+corenet_tcp_connect_tor_port(mozilla_t)
+corenet_udp_bind_commplex_link_port(mozilla_t)
+corenet_udp_bind_generic_port(mozilla_t)
+corenet_udp_bind_howl_port(mozilla_t)
+corenet_udp_bind_netsupport_port(mozilla_t)
+

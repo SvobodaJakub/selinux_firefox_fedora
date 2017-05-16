@@ -1,0 +1,61 @@
+Author: Jakub Svoboda
+License: CC0
+
+This module adds the necessary rules to the preinstalled SELinux rules in Fedora 25.
+
+The preinstalled rules confine firefox under guest users but not for ordinary users.
+This module adds a type transition from the unconfined_t domain so that firefox runs confined in the mozilla_t domain.
+
+PREREQUISITES:
+# dnf install selinux-policy-devel  setools-console   policycoreutils-gui -y
+
+INSTALLATION:
+create a download folder accessible for the confined firefox:
+$ mkdir ~/Downloads-sandbox
+
+compile:
+$ make 
+
+install the module:
+# semodule -i firefox_ov2.pp 
+
+add labeling rule (see BUGS):
+# semanage fcontext --add -s unconfined_u -t firefox_ov_downloads_t "/home/[^/]*/Downloads-sandbox(/.*)?"
+
+relabel files correctly:
+# restorecon -Rv /home
+
+
+UNINSTALLATION:
+remove labeling rule (see BUGS):
+# semanage fcontext -d -s unconfined_u -t firefox_ov_downloads_t "/home/[^/]*/Downloads-sandbox(/.*)?"
+
+remove the module:
+# semodule -r firefox_ov2
+
+
+BUGS:
+For some reason, the .fc file doesn't work :-( Restorecon ignores the rule in the .fc file.
+
+The following command labels the folder the same way as the .fc file:
+semanage fcontext --add -s unconfined_u -t firefox_ov_downloads_t "/home/[^/]*/Downloads-sandbox(/.*)?"
+
+
+MODULE GENERATION:
+- cat /var/log/audit/audit.log | grep avc | grep denied | grep -E "mozilla|firefox" | audit2allow -r -R -m firefox_ov2
+- run with and without -R because:
+	- with -R, the requires (-r) are not generated correctly
+	- with -R, not all rules are generated / not all rules are generated correctly
+	- without -R, some rules missed by -R are generated
+- also look at useful macros like manage_files_pattern (/usr/share/selinux/devel/include/support/file_patterns.spt)
+
+
+TESTING SHELL
+$ cp /bin/bash /tmp/bash-mozilla
+$ sudo chcon -v --type=mozilla_exec_t --role=object_r --user=system_u /tmp/bash-mozilla
+$ /tmp/bash-mozilla
+
+
+
+
+

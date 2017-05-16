@@ -1,0 +1,8 @@
+# "The field -type is optional and can be left blank. When it is filled, it is similar to the mode field for the ls command. For example, the -d means to match only directories, the -- means to match only files. "
+# source: https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/4/html/SELinux_Guide/rhlcommon-section-0037.html
+
+
+# commented out so that it doesn't collide with semanage fcontext, see README
+
+# /home/[^/]*/Downloads-sandbox(/.*)?            gen_context(unconfined_u:object_r:firefox_ov_downloads_t,s0)
+
