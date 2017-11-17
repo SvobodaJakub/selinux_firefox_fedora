@@ -19,26 +19,14 @@ $ make
 install the module:
 # semodule -i firefox_ov2.pp 
 
-add labeling rule (see BUGS):
-# semanage fcontext --add -s unconfined_u -t firefox_ov_downloads_t "/home/[^/]*/Downloads-sandbox(/.*)?"
-
 relabel files correctly:
 # restorecon -Rv /home
 
 
 UNINSTALLATION:
-remove labeling rule (see BUGS):
-# semanage fcontext -d -s unconfined_u -t firefox_ov_downloads_t "/home/[^/]*/Downloads-sandbox(/.*)?"
 
 remove the module:
 # semodule -r firefox_ov2
-
-
-BUGS:
-For some reason, the .fc file doesn't work :-( Restorecon ignores the rule in the .fc file.
-
-The following command labels the folder the same way as the .fc file:
-semanage fcontext --add -s unconfined_u -t firefox_ov_downloads_t "/home/[^/]*/Downloads-sandbox(/.*)?"
 
 
 MODULE GENERATION:
